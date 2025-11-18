@@ -3,6 +3,7 @@ package crawler
 import (
 	. "SecCrawler/config"
 	"SecCrawler/crawler/lab"
+	"SecCrawler/crawler/socialmedia"
 	"SecCrawler/register"
 )
 
@@ -34,5 +35,10 @@ func CrawlerInit() {
 	}
 	if Cfg.Crawler.HuoxianZone.Enabled {
 		register.RegisterCrawler(&HuoxianZone{})
+	}
+	if Cfg.Crawler.SocialMedia.Enabled {
+		if Cfg.Crawler.SocialMedia.X.Enabled {
+			register.RegisterCrawler(&socialmedia.X{})
+		}
 	}
 }

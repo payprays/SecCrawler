@@ -3,9 +3,11 @@ module SecCrawler
 go 1.17
 
 require (
+	github.com/g8rswimmer/go-twitter v1.1.4
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/mmcdole/gofeed v1.1.3
+	github.com/n0madic/twitter-scraper v0.0.0-20231104223941-296710769dd8
 	github.com/robfig/cron v1.2.0
 	github.com/spf13/viper v1.9.0
 	github.com/tebeka/selenium v0.9.9
@@ -38,10 +40,10 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ugorji/go/codec v1.1.7 // indirect
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
-	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420 // indirect
-	golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
 )
