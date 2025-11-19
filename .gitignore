@@ -1,7 +1,10 @@
 .DS_Store
+.env
 build.sh
 release_*
 config.yml*
 chromedriver
 .vscode/
 .idea/
+x-kit/
+SecCrawler

@@ -131,19 +131,25 @@ func (bot OneBotQQ) sendPrivateMessage(apiURL, accessToken string, userID int64,
 
 // sendRequest 发送 HTTP 请求到 OneBot API
 func (bot OneBotQQ) sendRequest(apiURL, accessToken string, payload OneBotMessage, timeout uint8) error {
-	jsonData, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("序列化请求失败: %v", err)
-	}
-
 	client := utils.BotClient(timeout)
 
-	// 支持两种 API 格式：
 	var reqURL string
+	var jsonData []byte
+	var err error
+
+	// 判断 API 格式
+	// 情况 1: 统一接口 (URL 以 / 结尾)，发送完整 Action + Params 结构
 	if strings.HasSuffix(apiURL, "/") {
 		reqURL = apiURL
+		jsonData, err = json.Marshal(payload)
 	} else {
+		// 情况 2: 标准 HTTP 接口 (拼接 Action)，只发送 Params
 		reqURL = apiURL + "/" + payload.Action
+		jsonData, err = json.Marshal(payload.Params)
+	}
+
+	if err != nil {
+		return fmt.Errorf("序列化请求失败: %v", err)
 	}
 
 	req, err := http.NewRequest("POST", reqURL, bytes.NewBuffer(jsonData))

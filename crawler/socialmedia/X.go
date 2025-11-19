@@ -5,9 +5,13 @@ import (
 	"SecCrawler/register"
 	"SecCrawler/utils"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/g8rswimmer/go-twitter/v2"
@@ -26,6 +30,24 @@ type X struct{}
 
 // getTargetUsers 从配置文件获取目标用户列表
 func getTargetUsers() []string {
+	// 尝试从 x-kit/dev-accounts.json 读取
+	fileContent, err := os.ReadFile("x-kit/dev-accounts.json")
+	if err == nil {
+		type Account struct {
+			Username string `json:"username"`
+		}
+		var accounts []Account
+		if err := json.Unmarshal(fileContent, &accounts); err == nil {
+			var users []string
+			for _, acc := range accounts {
+				users = append(users, acc.Username)
+			}
+			if len(users) > 0 {
+				return users
+			}
+		}
+	}
+
 	return config.Cfg.Crawler.SocialMedia.X.IDs
 }
 
@@ -38,6 +60,14 @@ func (x X) Config() register.CrawlerConfig {
 
 // Get 获取X平台前24小时内推文
 func (x X) Get() ([][]string, error) {
+	// 优先尝试使用 x-kit (基于 Cookie 的爬虫)
+	fmt.Println("[*] 尝试使用 x-kit (Cookie 爬虫)...")
+	tweets, err := x.fetchWithXKit()
+	if err == nil {
+		return tweets, nil
+	}
+	fmt.Printf("[!] x-kit 调用失败: %v，尝试其他方案...\n", err)
+
 	// API v2 needs a bearer token. In the free plan, this is often the same as the access token.
 	bearerToken := config.Cfg.Crawler.SocialMedia.X.AccessToken
 
@@ -53,6 +83,95 @@ func (x X) Get() ([][]string, error) {
 
 	fmt.Println("[*] 未配置 API V2 的 Bearer/Access Token，使用免费爬虫方案...")
 	return x.fetchWithScraper()
+}
+
+// fetchWithXKit 使用 x-kit 脚本获取推文
+func (x X) fetchWithXKit() ([][]string, error) {
+	var resultSlice [][]string
+	targetUsers := getTargetUsers()
+	fmt.Printf("[*] 使用 x-kit 监控 %d 个用户账号\n", len(targetUsers))
+
+	// x-kit 目录路径
+	xKitPath := "x-kit"
+
+	for _, username := range targetUsers {
+		fmt.Printf("[*] 正在使用 x-kit 爬取 @%s...\n", username)
+
+		// 执行 bun run scripts/crawl-user.ts <username>
+		cmd := exec.Command("bun", "run", "scripts/crawl-user.ts", username)
+		cmd.Dir = xKitPath
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			outputStr := string(output)
+			fmt.Printf("[!] x-kit 爬取 @%s 失败: %v\n输出: %s\n", username, err, outputStr)
+
+			// 检测是否触发限速
+			if strings.Contains(outputStr, "429") || strings.Contains(outputStr, "Too Many Requests") {
+				fmt.Println("[!] 检测到 429 限速，暂停 2 分钟等待恢复...")
+				time.Sleep(120 * time.Second)
+			} else {
+				time.Sleep(5 * time.Second)
+			}
+			continue
+		}
+
+		// 解析 JSON 输出
+		type Tweet struct {
+			ID           string `json:"id"`
+			Text         string `json:"text"`
+			CreatedAt    string `json:"createdAt"`
+			PermanentURL string `json:"permanentUrl"`
+			Username     string `json:"username"`
+		}
+
+		// Clean output: find the first '[' to ignore debug logs
+		outputStr := string(output)
+		startIndex := strings.Index(outputStr, "[")
+		if startIndex == -1 {
+			fmt.Printf("[!] x-kit 输出中未找到 JSON 数组: %s\n", outputStr)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		jsonPart := []byte(outputStr[startIndex:])
+
+		var tweets []Tweet
+		if err := json.Unmarshal(jsonPart, &tweets); err != nil {
+			// 尝试解析错误信息，如果输出不是 JSON
+			fmt.Printf("[!] 解析 @%s 的 x-kit 输出失败: %v\n原始输出: %s\n", username, err, string(output))
+			time.Sleep(5 * time.Second)
+			continue
+		}
+
+		for _, tweet := range tweets {
+			// Twitter API 返回的时间格式通常是 "Mon Jan 02 15:04:05 +0000 2006" (RubyDate)
+			// 但 x-kit 可能返回不同的格式，取决于 twitter-openapi-typescript 的处理
+			// 假设它返回的是 API 的原始格式
+			tweetTime, err := time.Parse(time.RubyDate, tweet.CreatedAt)
+			if err != nil {
+				// 尝试 RFC3339
+				tweetTime, err = time.Parse(time.RFC3339, tweet.CreatedAt)
+			}
+
+			if err != nil {
+				fmt.Printf("[!] 解析时间 '%s' 失败: %v\n", tweet.CreatedAt, err)
+				continue
+			}
+
+			if !utils.IsIn24Hours(tweetTime) {
+				continue
+			}
+
+			resultSlice = append(resultSlice, []string{tweet.PermanentURL, fmt.Sprintf("@%s: %s", tweet.Username, tweet.Text)})
+		}
+		// 正常请求间隔增加到 15 秒
+		time.Sleep(15 * time.Second)
+	}
+
+	if len(resultSlice) == 0 {
+		return nil, errors.New("x-kit 未找到24小时内记录")
+	}
+
+	return resultSlice, nil
 }
 
 // fetchWithAPIV2 使用官方API V2获取推文

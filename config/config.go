@@ -159,6 +159,7 @@ func ConfigInit() {
 		// Fix: viper.Unmarshal 在某些情况下无法正确解析 int64，手动修复
 		Cfg.Bot.OneBotQQ.GroupID = viper.GetInt64("Bot.OneBotQQ.group_id")
 		Cfg.Bot.OneBotQQ.UserID = viper.GetInt64("Bot.OneBotQQ.user_id")
+		Cfg.Bot.OneBotQQ.AccessToken = viper.GetString("Bot.OneBotQQ.access_token")
 
 		fmt.Printf("[*] load config success!\n\n")
 	}
