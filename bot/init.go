@@ -24,5 +24,7 @@ func BotInit() {
 	if Cfg.Bot.WgpSecBot.Enabled {
 		register.RegisterBot(&WgpSecBot{})
 	}
-
+	if Cfg.Bot.OneBotQQ.Enabled {
+		register.RegisterBot(&OneBotQQ{})
+	}
 }

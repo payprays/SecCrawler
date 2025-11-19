@@ -49,6 +49,7 @@ type BotStruct struct {
 	HexQBot    HexQBotStruct    `yaml:"HexQBot"`
 	ServerChan ServerChanStruct `yaml:"ServerChan"`
 	WgpSecBot  WgpSecBotStruct  `yaml:"WgpSecBot"`
+	OneBotQQ   OneBotQQStruct   `yaml:"OneBotQQ"`
 }
 
 type WecomBotStruct struct {
@@ -138,10 +139,12 @@ type SocialMediaStruct struct {
 }
 
 type Xstruct struct {
-	Enabled bool     `yaml:"enabled"`
-	Key     string   `yaml:"key"`
-	Secret  string   `yaml:"secret"`
-	IDs     []string `yaml:"IDs"`
+	Enabled      bool     `yaml:"enabled"`
+	Key          string   `yaml:"key"`
+	Secret       string   `yaml:"secret"`
+	AccessToken  string   `yaml:"accessToken"`
+	AccessSecret string   `yaml:"accessSecret"`
+	IDs          []string `yaml:"IDs"`
 }
 
 type HuoxianZoneStruct struct {
@@ -174,4 +177,13 @@ type TSRCBlogStruct struct {
 }
 type X1cT34mStruct struct {
 	Enabled bool `yaml:"enabled"`
+}
+
+type OneBotQQStruct struct {
+	Enabled     bool   `yaml:"enabled"`
+	API         string `yaml:"api"`
+	AccessToken string `yaml:"access_token"`
+	GroupID     int64  `yaml:"group_id"`
+	UserID      int64  `yaml:"user_id"`
+	Timeout     uint8  `yaml:"timeout"`
 }
